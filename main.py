@@ -119,12 +119,18 @@ def task_4():
 
     result = pd.read_sql(f'''
     with t as (select client_id, bonus_date, 
-    sum(bonus_cnt) over (partition by client_id order by bonus_date) as current_sum from BONUS
+    sum(bonus_cnt) over (partition by client_id order by bonus_date) as current_sum 
+    from BONUS
     natural join MCC_CATEGORIES
-    where mcc_category in ('Авиабилеты', 'Отели'))
-    select * from t
-    where current_sum>=1000
-    group by client_id
+    where mcc_category in ('Авиабилеты', 'Отели')),
+    
+    ranked_data as (select *, 
+    row_number() over (partition by client_id order by bonus_date) as row_num
+    from t 
+    where current_sum>=1000)
+    
+    select client_id, bonus_date, current_sum from ranked_data
+    where row_num=1
     order by bonus_date
     limit 1000
     ''', conn)
